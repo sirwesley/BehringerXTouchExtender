@@ -10,6 +10,9 @@ Detects audio and displays channels on VU Meters.
 Displays Colored Scribble Strips with "Track <1-8>".  
 Feedback displayed in console when buttons pressed. 
 
+Note: the hardware must be in Ctrl or CtrlRel mode (See users manual)  
+_hint: with unit off, hold left-most 'select' and power-on. use left-most rotary to select mode._
+
 ### scribble.config.json
 
 Customize this file within the sample project to set the text and colors.
