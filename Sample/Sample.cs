@@ -45,7 +45,7 @@ for (int i = 0; i < device.TrackCount; i++) {
             muteButtonState.Value = muteButtonState.Value switch {
                 IlluminatedButtonState.Off => IlluminatedButtonState.On,
                 IlluminatedButtonState.On  => IlluminatedButtonState.Blinking,
-                _                          => IlluminatedButtonState.Off
+                IlluminatedButtonState.Blinking => IlluminatedButtonState.Off
             };
         }
     };
@@ -61,7 +61,7 @@ for (int i = 0; i < device.TrackCount; i++) {
             soloButtonState.Value = soloButtonState.Value switch {
                 IlluminatedButtonState.Off => IlluminatedButtonState.On,
                 IlluminatedButtonState.On  => IlluminatedButtonState.Blinking,
-                _                          => IlluminatedButtonState.Off
+                IlluminatedButtonState.Blinking => IlluminatedButtonState.Off
             };
         }
     };
@@ -76,14 +76,21 @@ for (int i = 0; i < device.TrackCount; i++) {
         }
     };
     fader.ActualPosition.PropertyChanged += (_, eventArgs) => Console.WriteLine($"User moved fader {trackId + 1} to position {eventArgs.NewValue:P0}");
-    fader.DesiredPosition.Connect(trackId / (device.TrackCount - 1.0));
+
+    Property<ScribbleStripBackgroundColor> stripColor = trackId == 0 ? new StoredProperty<ScribbleStripBackgroundColor> (ScribbleStripBackgroundColor.White) :  new StoredProperty<ScribbleStripBackgroundColor>((ScribbleStripBackgroundColor)trackId);
+
+    device.GetScribbleStrip(trackId).TopText.Connect(new StoredProperty<string>($"Track {trackId + 1}"));
+    device.GetScribbleStrip(trackId).BackgroundColor
+       .Connect(stripColor); //avoid black background because it makes text illegible*/
+
+    /*fader.DesiredPosition.Connect(trackId / (device.TrackCount - 1.0));
 
     device.GetScribbleStrip(trackId).TopText.Connect($"Track {trackId + 1}");
     device.GetScribbleStrip(trackId).BottomText.Connect(new string('.', trackId));
     device.GetScribbleStrip(trackId).TopTextColor.Connect(ScribbleStripTextColor.Dark);
     device.GetScribbleStrip(trackId).BottomTextColor.Connect(ScribbleStripTextColor.Light);
     device.GetScribbleStrip(trackId).BackgroundColor
-        .Connect(trackId == 0 ? ScribbleStripBackgroundColor.White : (ScribbleStripBackgroundColor) trackId); //avoid black background because it makes text illegible
+        .Connect(trackId == 0 ? ScribbleStripBackgroundColor.White : (ScribbleStripBackgroundColor) trackId); //avoid black background because it makes text illegible*/
 }
 
 const int audioPeakFps   = 15;
