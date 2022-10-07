@@ -1,9 +1,11 @@
 ﻿using BehringerXTouchExtender;
 using CSCore.CoreAudioAPI;
 using KoKo.Property;
+using System;
+using System.Diagnostics.Tracing;
 using Timer = System.Timers.Timer;
 
-using IBehringerXTouchExtenderControlSurface<IRelativeRotaryEncoder> device = BehringerXTouchExtenderControlSurface.CreateWithRelativeMode();
+using IBehringerXTouchExtenderControlSurface<IAbsoluteRotaryEncoder> device = BehringerXTouchExtenderControlSurface.CreateWithAbsoluteMode();
 
 Console.WriteLine("Connecting to Behringer X-Touch Extender...");
 device.Open();
@@ -25,49 +27,86 @@ ManuallyRecalculatedProperty<int[]> audioPeaks = new(() => {
     return ledPositions;
 });
 
+/**
+ * Processes the Button Press
+ * Transitions between <ON, BLINKING, OFF>
+ */
+void processButton(IIlluminatedButton button, int trackId)
+{
+    StoredProperty<IlluminatedButtonState> state = new();
+
+    
+    button.IlluminationState.Connect(state);
+    button.IsPressed.PropertyChanged += (_, eventArgs) => {
+        if (eventArgs.NewValue)
+        {
+
+            state.Value = state.Value switch
+            {
+                IlluminatedButtonState.Off => IlluminatedButtonState.On,
+                IlluminatedButtonState.On => IlluminatedButtonState.Blinking,
+                IlluminatedButtonState.Blinking => IlluminatedButtonState.Off
+            };
+
+            string typeString = "MUTE ";
+            switch (button.ButtonType)
+            {
+                case IlluminatedButtonType.Mute:
+                    typeString = "MUTE ";
+                    break;
+                case IlluminatedButtonType.Select:
+                    typeString = "SEL  ";
+                    break;
+                case IlluminatedButtonType.Record:
+                    typeString = "REC  ";
+                    break;
+                case IlluminatedButtonType.Solo:
+                    typeString = "SOLO ";
+                    break;
+            }
+            string stateString = (state.Value == IlluminatedButtonState.Blinking) ? "<>" : state.Value.ToString() == "Off" ? "--" : "ON";
+            device.GetScribbleStrip(trackId).BottomText.Connect(new StoredProperty<string>($"{typeString}{stateString}"));
+        }
+    };
+}
+
+
+
 for (int i = 0; i < device.TrackCount; i++) {
     int trackId = i; //create closure so it doesn't change between when a callback is defined and executed
 
-    IRelativeRotaryEncoder rotaryEncoder              = device.GetRotaryEncoder(trackId);
+    IAbsoluteRotaryEncoder rotaryEncoder              = device.GetRotaryEncoder(trackId);
     StoredProperty<int>    rotaryEncoderLightPosition = new(trackId);
     rotaryEncoder.LightPosition.Connect(rotaryEncoderLightPosition);
-    rotaryEncoder.Rotated += (_, rotationArgs) =>
-        rotaryEncoderLightPosition.Value = Math.Max(Math.Min(rotaryEncoderLightPosition.Value + (rotationArgs.IsClockwise ? 1 : -1), rotaryEncoder.LightCount - 1), 0);
+    rotaryEncoder.RotationPosition.PropertyChanged += (_, rotationArgs) =>
+    {
+        //rotaryEncoderLightPosition.Value = Math.Max(Math.Min(rotaryEncoderLightPosition.Value + (rotationArgs.IsClockwise ? 1 : -1), rotaryEncoder.LightCount - 1), 0);
+        Console.WriteLine($"User moved rotary {trackId + 1} to position {rotationArgs.NewValue:P0}");
+        device.GetScribbleStrip(trackId).BottomText.Connect(new StoredProperty<string>($"RT:{rotationArgs.NewValue:P0}"));
+    };
 
-    int audioChannel = trackId * audioChannelCount / device.TrackCount; //integer truncation is desired here
+    rotaryEncoder.IsPressed.PropertyChanged += (_, eventArgs) =>
+    {
+        device.GetScribbleStrip(trackId).BottomText.Connect(new StoredProperty<string>($"RT:{eventArgs.NewValue}"));
+    };
+
+
+
+        int audioChannel = trackId * audioChannelCount / device.TrackCount; //integer truncation is desired here
     device.GetVuMeter(trackId).LightPosition.Connect(DerivedProperty<int>.Create(audioPeaks, peaks => peaks[audioChannel]));
 
-    IIlluminatedButton                     muteButton      = device.GetMuteButton(trackId);
-    StoredProperty<IlluminatedButtonState> muteButtonState = new();
-    muteButton.IlluminationState.Connect(muteButtonState);
-    muteButton.IsPressed.PropertyChanged += (_, eventArgs) => {
-        if (eventArgs.NewValue) {
-            muteButtonState.Value = muteButtonState.Value switch {
-                IlluminatedButtonState.Off => IlluminatedButtonState.On,
-                IlluminatedButtonState.On  => IlluminatedButtonState.Blinking,
-                IlluminatedButtonState.Blinking => IlluminatedButtonState.Off
-            };
-        }
-    };
+    IIlluminatedButton muteButton = device.GetMuteButton(trackId);
+    processButton(muteButton, trackId);
 
     IIlluminatedButton recordButton = device.GetRecordButton(trackId);
-    recordButton.IlluminationState.Connect(DerivedProperty<IlluminatedButtonState>.Create(recordButton.IsPressed, isPressed => isPressed ? IlluminatedButtonState.On : IlluminatedButtonState.Off));
+    processButton(recordButton, trackId);
 
-    IIlluminatedButton                     soloButton      = device.GetSoloButton(trackId);
-    StoredProperty<IlluminatedButtonState> soloButtonState = new();
-    soloButton.IlluminationState.Connect(soloButtonState);
-    soloButton.IsPressed.PropertyChanged += (_, eventArgs) => {
-        if (eventArgs.NewValue) {
-            soloButtonState.Value = soloButtonState.Value switch {
-                IlluminatedButtonState.Off => IlluminatedButtonState.On,
-                IlluminatedButtonState.On  => IlluminatedButtonState.Blinking,
-                IlluminatedButtonState.Blinking => IlluminatedButtonState.Off
-            };
-        }
-    };
+
+    IIlluminatedButton soloButton      = device.GetSoloButton(trackId);
+    processButton(soloButton, trackId);
 
     IIlluminatedButton selectButton = device.GetSelectButton(trackId);
-    selectButton.IlluminationState.Connect(DerivedProperty<IlluminatedButtonState>.Create(selectButton.IsPressed, isPressed => isPressed ? IlluminatedButtonState.On : IlluminatedButtonState.Off));
+    processButton(selectButton, trackId);
 
     IFader fader = device.GetFader(trackId);
     fader.IsPressed.PropertyChanged += (_, eventArgs) => {
@@ -75,22 +114,21 @@ for (int i = 0; i < device.TrackCount; i++) {
             Console.WriteLine($"User is touching Fader {trackId}");
         }
     };
-    fader.ActualPosition.PropertyChanged += (_, eventArgs) => Console.WriteLine($"User moved fader {trackId + 1} to position {eventArgs.NewValue:P0}");
-
-    Property<ScribbleStripBackgroundColor> stripColor = trackId == 0 ? new StoredProperty<ScribbleStripBackgroundColor> (ScribbleStripBackgroundColor.White) :  new StoredProperty<ScribbleStripBackgroundColor>((ScribbleStripBackgroundColor)trackId);
+    fader.ActualPosition.PropertyChanged += (_, eventArgs) =>
+    {
+        Console.WriteLine($"User moved fader {trackId + 1} to position {eventArgs.NewValue:P0}");
+        device.GetScribbleStrip(trackId).BottomText.Connect(new StoredProperty<string>($"FD:{eventArgs.NewValue:P0}"));
+    };
 
     device.GetScribbleStrip(trackId).TopText.Connect(new StoredProperty<string>($"Track {trackId + 1}"));
+    device.GetScribbleStrip(trackId).TopTextColor.Connect(new StoredProperty<ScribbleStripTextColor>(ScribbleStripTextColor.Dark));
+    device.GetScribbleStrip(trackId).BottomTextColor.Connect(new StoredProperty<ScribbleStripTextColor>(ScribbleStripTextColor.Light));
+
+    Property<ScribbleStripBackgroundColor> stripColor = trackId == 0 ? new StoredProperty<ScribbleStripBackgroundColor>(ScribbleStripBackgroundColor.White) : new StoredProperty<ScribbleStripBackgroundColor>((ScribbleStripBackgroundColor)trackId);
     device.GetScribbleStrip(trackId).BackgroundColor
        .Connect(stripColor); //avoid black background because it makes text illegible*/
 
-    /*fader.DesiredPosition.Connect(trackId / (device.TrackCount - 1.0));
-
-    device.GetScribbleStrip(trackId).TopText.Connect($"Track {trackId + 1}");
-    device.GetScribbleStrip(trackId).BottomText.Connect(new string('.', trackId));
-    device.GetScribbleStrip(trackId).TopTextColor.Connect(ScribbleStripTextColor.Dark);
-    device.GetScribbleStrip(trackId).BottomTextColor.Connect(ScribbleStripTextColor.Light);
-    device.GetScribbleStrip(trackId).BackgroundColor
-        .Connect(trackId == 0 ? ScribbleStripBackgroundColor.White : (ScribbleStripBackgroundColor) trackId); //avoid black background because it makes text illegible*/
+    fader.DesiredPosition.Connect(new StoredProperty<double> (trackId / (device.TrackCount - 1.0)));
 }
 
 const int audioPeakFps   = 15;
