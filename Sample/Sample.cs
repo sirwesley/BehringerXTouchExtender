@@ -87,7 +87,7 @@ for (int i = 0; i < device.TrackCount; i++) {
 
     rotaryEncoder.IsPressed.PropertyChanged += (_, eventArgs) =>
     {
-        device.GetScribbleStrip(trackId).BottomText.Connect($"RT:{eventArgs.NewValue}");
+        device.GetScribbleStrip(trackId).BottomText.Connect($"RT:{(eventArgs.NewValue ? "ON":"OFF")}");
     };
 
 
@@ -96,16 +96,13 @@ for (int i = 0; i < device.TrackCount; i++) {
     device.GetVuMeter(trackId).LightPosition.Connect(DerivedProperty<int>.Create(audioPeaks, peaks => peaks[audioChannel]));
 
     IIlluminatedButton muteButton = device.GetMuteButton(trackId);
-    processButton(muteButton, trackId);
-
     IIlluminatedButton recordButton = device.GetRecordButton(trackId);
-    processButton(recordButton, trackId);
-
-
     IIlluminatedButton soloButton      = device.GetSoloButton(trackId);
-    processButton(soloButton, trackId);
-
     IIlluminatedButton selectButton = device.GetSelectButton(trackId);
+
+    processButton(muteButton, trackId);
+    processButton(recordButton, trackId);
+    processButton(soloButton, trackId);
     processButton(selectButton, trackId);
 
     IFader fader = device.GetFader(trackId);
