@@ -1,0 +1,66 @@
+[
+  {
+    "stripIndex":  0,
+    "topText": "Hello",
+    "bottomText": "World",
+    "topContrast": "light",
+    "bottomContrast": "light",
+    "backgroundColor": "black"
+  },
+  {
+    "stripIndex": 1,
+    "topText": "Hello",
+    "bottomText": "World",
+    "topContrast": "light",
+    "bottomContrast": "light",
+    "backgroundColor": "green"
+  },
+  {
+    "stripIndex": 2,
+    "topText": "Hello",
+    "bottomText": "World",
+    "topContrast": "dark",
+    "bottomContrast": "light",
+    "backgroundColor": "blue"
+  },
+  {
+    "stripIndex": 3,
+    "topText": "Hello",
+    "bottomText": "World",
+    "topContrast": "dark",
+    "bottomContrast": "light",
+    "backgroundColor": "white"
+  },
+  {
+    "stripIndex": 4,
+    "topText": "Hello",
+    "bottomText": "World",
+    "topContrast": "dark",
+    "bottomContrast": "light",
+    "backgroundColor": "magenta"
+  },
+  {
+    "stripIndex": 5,
+    "topText": "Hello",
+    "bottomText": "World",
+    "topContrast": "dark",
+    "bottomContrast": "light",
+    "backgroundColor": "cyan"
+  },
+  {
+    "stripIndex": 6,
+    "topText": "Hello",
+    "bottomText": "World",
+    "topContrast": "dark",
+    "bottomContrast": "light",
+    "backgroundColor": "yellow"
+  },
+  {
+    "stripIndex": 7,
+    "topText": "Hello",
+    "bottomText": "World",
+    "topContrast": "dark",
+    "bottomContrast": "light",
+    "backgroundColor": "red"
+  }
+] 
