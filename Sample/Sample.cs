@@ -65,7 +65,7 @@ void processButton(IIlluminatedButton button, int trackId)
                     break;
             }
             string stateString = (state.Value == IlluminatedButtonState.Blinking) ? "<>" : state.Value.ToString() == "Off" ? "--" : "ON";
-            device.GetScribbleStrip(trackId).BottomText.Connect(new StoredProperty<string>($"{typeString}{stateString}"));
+            device.GetScribbleStrip(trackId).BottomText.Connect($"{typeString}{stateString}");
         }
     };
 }
@@ -82,12 +82,12 @@ for (int i = 0; i < device.TrackCount; i++) {
     {
         //rotaryEncoderLightPosition.Value = Math.Max(Math.Min(rotaryEncoderLightPosition.Value + (rotationArgs.IsClockwise ? 1 : -1), rotaryEncoder.LightCount - 1), 0);
         Console.WriteLine($"User moved rotary {trackId + 1} to position {rotationArgs.NewValue:P0}");
-        device.GetScribbleStrip(trackId).BottomText.Connect(new StoredProperty<string>($"RT:{rotationArgs.NewValue:P0}"));
+        device.GetScribbleStrip(trackId).BottomText.Connect($"RT:{rotationArgs.NewValue:P0}");
     };
 
     rotaryEncoder.IsPressed.PropertyChanged += (_, eventArgs) =>
     {
-        device.GetScribbleStrip(trackId).BottomText.Connect(new StoredProperty<string>($"RT:{eventArgs.NewValue}"));
+        device.GetScribbleStrip(trackId).BottomText.Connect($"RT:{eventArgs.NewValue}");
     };
 
 
@@ -120,15 +120,15 @@ for (int i = 0; i < device.TrackCount; i++) {
         device.GetScribbleStrip(trackId).BottomText.Connect(new StoredProperty<string>($"FD:{eventArgs.NewValue:P0}"));
     };
 
-    device.GetScribbleStrip(trackId).TopText.Connect(new StoredProperty<string>($"Track {trackId + 1}"));
-    device.GetScribbleStrip(trackId).TopTextColor.Connect(new StoredProperty<ScribbleStripTextColor>(ScribbleStripTextColor.Dark));
-    device.GetScribbleStrip(trackId).BottomTextColor.Connect(new StoredProperty<ScribbleStripTextColor>(ScribbleStripTextColor.Light));
+    device.GetScribbleStrip(trackId).TopText.Connect($"Track {trackId + 1}");
+    device.GetScribbleStrip(trackId).TopTextColor.Connect(ScribbleStripTextColor.Dark);
+    device.GetScribbleStrip(trackId).BottomTextColor.Connect(ScribbleStripTextColor.Light);
 
     Property<ScribbleStripBackgroundColor> stripColor = trackId == 0 ? new StoredProperty<ScribbleStripBackgroundColor>(ScribbleStripBackgroundColor.White) : new StoredProperty<ScribbleStripBackgroundColor>((ScribbleStripBackgroundColor)trackId);
     device.GetScribbleStrip(trackId).BackgroundColor
        .Connect(stripColor); //avoid black background because it makes text illegible*/
 
-    fader.DesiredPosition.Connect(new StoredProperty<double> (trackId / (device.TrackCount - 1.0)));
+    fader.DesiredPosition.Connect(trackId / (device.TrackCount - 1.0));
 }
 
 const int audioPeakFps   = 15;
